@@ -1,6 +1,12 @@
 import {Socket} from "phoenix"
 
-let socket = new Socket("/socket", {params: {token: window.userToken}})
+let user = localStorage.getItem("user")
+if(!user) {
+  user = prompt("What's your user?")
+  localStorage.setItem("user", user)
+}
+
+let socket = new Socket("/socket", {params: {user: user}})
 
 socket.connect()
 
@@ -12,13 +18,21 @@ channel.join()
   .receive("ok", resp => { console.log("Joined successfully", resp) })
   .receive("error", resp => { console.log("Unable to join", resp) })
 
-channel.push("message", {message: "Teste"})
-
 channel.on("message", function(message){
-  $messages.append(`<div class="message">${message.message}</div>`)
+  $messages.append(`<div class="message">${message.user} - ${message.message}</div>`)
 })
 
+$input.keyup(function(event) {
+  if(event.which != 13)
+    return
 
+  channel.push("message", {message: $input.val()})
+  $input.val("")
+})
 
+channel.on("new_user", function(message) {
+  $messages.append(`<div class="new_user">${message.user} entrou na sala</div>`)
+
+})
 
 export default socket
